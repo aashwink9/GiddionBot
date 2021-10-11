@@ -195,7 +195,7 @@ class music(commands.Cog):
         voice_client = ctx.message.guild.voice_client
         self.queue.clear()
         await ctx.send(":gun: The queue has been reset! Exiting...")
-        voice_client.disconnect()
+        await voice_client.disconnect()
 
     @commands.command()
     async def clearq(self, ctx):
@@ -231,7 +231,6 @@ class music(commands.Cog):
       voice_client = ctx.message.guild.voice_client
       voice_client.stop()
       await ctx.send(":stop_sign: *Stopped!*")
-      voice_client.disconnect()
 
     @commands.command()
     async def show(self, ctx):
@@ -241,11 +240,10 @@ class music(commands.Cog):
         return
 
       qstr = ""
-      i = 1
       for q in self.queue:
-        qstr += i + ". " + str(q.title)
+        qstr += "```" + str(self.queue.index(q)+1) + ". " + str(q.title) + "```"
 
-      await ctx.send("Songs in queue:\n" + qstr)
+      await ctx.send("**Songs in queue:**\n" + qstr)
 
 def setup(client):
     client.add_cog(music(client))
