@@ -228,11 +228,24 @@ class music(commands.Cog):
 
     @commands.command()
     async def stop(self, ctx):
-        voice_client = ctx.message.guild.voice_client
-        voice_client.stop()
-        await ctx.send(":stop_sign: *Stopped!*")
-        voice_client.disconnect()
+      voice_client = ctx.message.guild.voice_client
+      voice_client.stop()
+      await ctx.send(":stop_sign: *Stopped!*")
+      voice_client.disconnect()
 
+    @commands.command()
+    async def show(self, ctx):
+
+      if len(self.queue) == 0:
+        await ctx.send("The queue is empty!")
+        return
+
+      qstr = ""
+      i = 1
+      for q in self.queue:
+        qstr += i + ". " + str(q.title)
+
+      await ctx.send("Songs in queue:\n" + qstr)
 
 def setup(client):
     client.add_cog(music(client))

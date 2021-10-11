@@ -1,3 +1,4 @@
+import os
 import discord
 from discord.ext import commands
 import random
@@ -37,4 +38,8 @@ async def on_ready():
     print("logged in! as {0.user}".format(client))
 
 
-client.run("ODQ0NDYwMzAyODIxMjI4NTc1.YKSu8Q.2wH3oNSax6LEpvZGylAFnR_sCt8")
+
+my_secret = os.environ['tkn']
+client.run(my_secret)
+
+
