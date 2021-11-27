@@ -1,3 +1,4 @@
+import json
 import os
 import discord
 from discord.ext import commands
@@ -14,13 +15,13 @@ for i in range(len(cogs)):
 
 
 def jokes():
-    jokes = [
+    joke = [
         "I ate a clock yesterday, it was very time-consuming.",
         "Have you played the updated kids' game? I Spy With My Little Eye . . . Phone.",
         "A perfectionist walked into a bar...apparently, the bar wasn’t set high enough.",
     ]
 
-    return random.choice(jokes)
+    return random.choice(joke)
 
 
 def allcommands(com):
@@ -38,8 +39,10 @@ async def on_ready():
     print("logged in! as {0.user}".format(client))
 
 
+credsf = open("creds.json")
+creds = json.load(credsf)
+TOKEN = creds["token"]
 
-my_secret = os.environ['tkn']
-client.run(my_secret)
+client.run(TOKEN)
 
 

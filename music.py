@@ -43,7 +43,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         if "entries" in data:
             data = data["entries"][0]
-            
 
         filename = data["url"] if stream else ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **FFMPEG_OPTIONS), data=data)
@@ -54,7 +53,6 @@ class music(commands.Cog):
         self.client = client
         self.queue = []
 
-    
     @commands.command()
     async def play(self, ctx, url):
         channel = ctx.message.author.voice.channel
@@ -66,50 +64,51 @@ class music(commands.Cog):
             await ctx.send("You are not connected to a voice channel!")
             return
 
-        elif voice is not None:  
-          if not voice.is_playing():
-            try:
-                self.queue.append(song)
+        elif voice is not None:
+            if not voice.is_playing():
+                try:
+                    self.queue.append(song)
 
-                while len(self.queue) > 0:
-                  ctx.voice_client.play(self.queue.pop(0), after=lambda e: print("Player error:   %s" % e) if e else None,)
-                
-      
-                await ctx.send(
-                    f":mag_right: **Searching for** "
-                    "*" + url + "*"
-                    + "\n<:arrow_forward:763374159567781890> **Now Playing: ** ``{}".format(
-                        song.title
+                    while len(self.queue) > 0:
+                        ctx.voice_client.play(self.queue.pop(0),
+                                              after=lambda e: print("Player error:   %s" % e) if e else None, )
+
+                    await ctx.send(
+                        f":mag_right: **Searching for** "
+                        "*" + url + "*"
+                        + "\n<:arrow_forward:763374159567781890> **Now Playing: ** ``{}".format(
+                            song.title
+                        )
+                        + "``"
                     )
-                    + "``"
-                )
 
-            except:
-                await ctx.send("Something went wrong - please try again later!")
+                except:
+                    await ctx.send("Something went wrong - please try again later!")
 
-          else:
-            try:
-                self.queue.append(song)
-                await ctx.send(
-                    f":mag_right: **Searching for** "
-                    + "*" + url + "*"
-                    + "\n<:play_pause:763374159567781890> **Queued Song: ** ``{}".format(
-                        song.title
+            else:
+                try:
+                    self.queue.append(song)
+                    await ctx.send(
+                        f":mag_right: **Searching for** "
+                        + "*" + url + "*"
+                        + "\n<:play_pause:763374159567781890> **Queued Song: ** ``{}".format(
+                            song.title
+                        )
+                        + "``"
+                        + " **At Position ("
+                        + str(position)
+                        + ")**"
                     )
-                    + "``"
-                    + " **At Position ("
-                    + str(position)
-                    + ")**"
-                )
 
-            except:
-                await ctx.send("Something went wrong - please try again later!")
+                except:
+                    await ctx.send("Something went wrong - please try again later!")
 
         else:
             await channel.connect()
             try:
                 self.queue.append(song)
-                ctx.voice_client.play(self.queue.pop(0), after=lambda e: print("Player error:   %s" % e) if e else None,)
+                ctx.voice_client.play(self.queue.pop(0),
+                                      after=lambda e: print("Player error:   %s" % e) if e else None, )
 
                 await ctx.send(
                     f":mag_right: **Searching for** "
@@ -123,14 +122,12 @@ class music(commands.Cog):
             except:
                 await ctx.send("Something went wrong - please try again later!")
 
-
     # def play_next(self, ctx, source):
     #   if len(self.queue) >= 1:
-        
+
     #     voice = discord.utils.get(self.client.voice_clients, guild=ctx.guild)
     #     voice.play(discord.FFmpegPCMAudio(source=source, after=lambda e: play_next(self, ctx, source)))
 
-        
     @commands.command()
     async def pause(self, ctx):
         await ctx.voice_client.pause()
@@ -174,7 +171,6 @@ class music(commands.Cog):
         self.queue.clear()
         await ctx.send(":gun: The queue has been cleared!")
 
-
     @commands.command()
     async def skip(self, ctx):
         voice_client = ctx.message.guild.voice_client
@@ -186,7 +182,7 @@ class music(commands.Cog):
             voice_client.stop()
             nextsong = self.queue.pop(0)
             await ctx.send(":fast_forward: *Skipping!*\n**Playing:** " + "``" + str(nextsong.title) + "``")
-            
+
             ctx.voice_client.play(nextsong)
             return
 
@@ -201,28 +197,29 @@ class music(commands.Cog):
             voice_client.stop()
             nextsong = self.queue.pop(0)
             await ctx.send(":fast_forward: *Skipping!*\n**Playing:** " + "``" + str(nextsong.title) + "``")
-            
+
             ctx.voice_client.play(nextsong)
             return
 
     @commands.command()
     async def stop(self, ctx):
-      voice_client = ctx.message.guild.voice_client
-      voice_client.stop()
-      await ctx.send(":stop_sign: *Stopped!*")
+        voice_client = ctx.message.guild.voice_client
+        voice_client.stop()
+        await ctx.send(":stop_sign: *Stopped!*")
 
     @commands.command()
     async def show(self, ctx):
 
-      if len(self.queue) == 0:
-        await ctx.send("The queue is empty!")
-        return
+        if len(self.queue) == 0:
+            await ctx.send("The queue is empty!")
+            return
 
-      qstr = ""
-      for q in self.queue:
-        qstr += "```" + str(self.queue.index(q)+1) + ". " + str(q.title) + "```"
+        qstr = ""
+        for q in self.queue:
+            qstr += "```" + str(self.queue.index(q) + 1) + ". " + str(q.title) + "```"
 
-      await ctx.send("**Songs in queue:**\n" + qstr)
+        await ctx.send("**Songs in queue:**\n" + qstr)
+
 
 def setup(client):
     client.add_cog(music(client))
