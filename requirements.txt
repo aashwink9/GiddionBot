@@ -1,0 +1,8 @@
+discord.py
+flask
+python-dotenv
+PyNaCl
+dnspython
+youtube_dl
+asyncio
+discord
