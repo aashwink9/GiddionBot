@@ -1,19 +1,12 @@
-import json
 import os
 import discord
 from discord.ext import commands
 import random
 import music
 
-# --------------FOR LOCAL RUN--------------
-# credsf = open("creds.json")
-# creds = json.load(credsf)
-# TOKEN = creds["token"]
-# -----------------------------------------
-
-# -------------FOR HEROKU------------------
+# -------------FOR HEROKU ENV------------------
 TOKEN = os.getenv("DISCORD_TOKEN")
-# -----------------------------------------
+# ---------------------------------------------
 
 cogs = [music]
 

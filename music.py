@@ -122,12 +122,6 @@ class music(commands.Cog):
             except:
                 await ctx.send("Something went wrong - please try again later!")
 
-    # def play_next(self, ctx, source):
-    #   if len(self.queue) >= 1:
-
-    #     voice = discord.utils.get(self.client.voice_clients, guild=ctx.guild)
-    #     voice.play(discord.FFmpegPCMAudio(source=source, after=lambda e: play_next(self, ctx, source)))
-
     @commands.command()
     async def pause(self, ctx):
         await ctx.voice_client.pause()
