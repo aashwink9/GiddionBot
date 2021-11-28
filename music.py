@@ -4,7 +4,6 @@ import youtube_dl
 import asyncio
 from functools import partial
 from async_timeout import timeout
-import ffmpeg
 
 FFMPEG_OPTIONS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
@@ -79,10 +78,10 @@ class music(commands.Cog):
         return self.client.loop.create_task(ctx.cog.cleanup(ctx.guild))
 
     @commands.command()
-    async def play(self, ctx, *, url: str):
+    async def play(self, ctx, *, search: str):
         channel = ctx.message.author.voice.channel
         voice = discord.utils.get(self.client.voice_clients, guild=ctx.guild)
-        getsong = await YTDLSource.from_url(url, loop=self.client.loop, download=False)
+        getsong = await YTDLSource.from_url(search, loop=self.client.loop, download=False)
         song = await YTDLSource.regather_stream(getsong, loop=self.client.loop)
         position = self.queue.qsize() + 1
 
@@ -93,25 +92,27 @@ class music(commands.Cog):
         elif voice:
             if not voice.is_playing():
                 await self.queue.put(song)
-                curr_song = await self.queue.get()
-                dur = curr_song.duration
-                async with timeout(dur):
-                    ctx.voice_client.play(curr_song, after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
 
-                await ctx.send(
-                    f":mag_right: **Searching for** "
-                    "*" + url + "*"
-                    + "\n<:arrow_forward:763374159567781890> **Now Playing: ** ``{}".format(
-                        curr_song.title
+                while self.queue.qsize() > 0:
+                    curr_song = await self.queue.get()
+                    dur = curr_song.duration
+                    ctx.voice_client.play(curr_song,
+                                          after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
+                    await ctx.send(
+                        f":mag_right: **Searching for** "
+                        "*" + search + "*"
+                        + "\n<:arrow_forward:763374159567781890> **Now Playing: ** ``{}".format(
+                            song.title
+                        )
+                        + "``"
                     )
-                    + "``"
-                )
+                    await asyncio.sleep(dur+1)
 
             else:
                 await self.queue.put(song)
                 await ctx.send(
                     f":mag_right: **Searching for** "
-                    + "*" + url + "*"
+                    + "*" + search + "*"
                     + "\n<:play_pause:763374159567781890> **Queued Song: ** ``{}".format(
                         song.title
                     )
@@ -125,29 +126,30 @@ class music(commands.Cog):
             await channel.connect()
             await self.queue.put(song)
 
-            curr_song = await self.queue.get()
-            dur = curr_song.duration
-
-            async with timeout(dur):
+            while self.queue.qsize() > 0:
+                curr_song = await self.queue.get()
+                dur = curr_song.duration
                 ctx.voice_client.play(curr_song, after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
-
-            await ctx.send(
-                f":mag_right: **Searching for** "
-                "*" + url + "*"
-                + "\n<:arrow_forward:763374159567781890> **Now Playing: ** ``{}".format(
-                    song.title
+                await ctx.send(
+                    f":mag_right: **Searching for** "
+                    "*" + search + "*"
+                    + "\n<:arrow_forward:763374159567781890> **Now Playing: ** ``{}".format(
+                        song.title
+                    )
+                    + "``"
                 )
-                + "``"
-            )
+                await asyncio.sleep(dur+1)
 
     @commands.command()
     async def pause(self, ctx):
-        await ctx.voice_client.pause()
+        voice_client = ctx.message.guild.voice_client
+        await voice_client.pause()
         await ctx.send(":pause_button: Paused!")
 
     @commands.command()
     async def resume(self, ctx):
-        await ctx.voice_client.resume()
+        voice_client = ctx.message.guild.voice_client
+        await voice_client.resume()
         await ctx.send(":arrow_forward: resumed!")
 
     @commands.command()
@@ -174,12 +176,15 @@ class music(commands.Cog):
     @commands.command()
     async def reset(self, ctx):
         voice_client = ctx.message.guild.voice_client
-        self.destroy(ctx)
+        while self.queue.empty() is not True:
+            await self.queue.get()
         await ctx.send(":gun: The queue has been reset! Exiting...")
         await voice_client.disconnect()
 
     @commands.command()
     async def clearq(self, ctx):
+        while self.queue.empty() is not True:
+            await self.queue.get()
         await ctx.send(":gun: The queue has been cleared!")
 
     @commands.command()
