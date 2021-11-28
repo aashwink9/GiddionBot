@@ -97,7 +97,7 @@ class music(commands.Cog):
                         f":mag_right: **Searching for** "
                         "*" + search + "*"
                         + "\n<:arrow_forward:763374159567781890> **Now Playing: ** ``{}".format(
-                            song.title
+                            curr_song.title
                         )
                         + "``"
                     )
