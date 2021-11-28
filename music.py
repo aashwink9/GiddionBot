@@ -72,10 +72,6 @@ class music(commands.Cog):
         self.queue = asyncio.Queue()
         self.next = asyncio.Event()
 
-    def destroy(self, ctx):
-        """Disconnect and cleanup the player."""
-        return self.client.loop.create_task(ctx.cog.cleanup(ctx.guild))
-
     @commands.command()
     async def play(self, ctx, *, search: str):
         channel = ctx.message.author.voice.channel
@@ -105,7 +101,7 @@ class music(commands.Cog):
                         )
                         + "``"
                     )
-                    await asyncio.sleep(dur+1)
+                    await asyncio.sleep(dur)
 
             else:
                 await self.queue.put(song)
@@ -137,7 +133,7 @@ class music(commands.Cog):
                     )
                     + "``"
                 )
-                await asyncio.sleep(dur+1)
+                await asyncio.sleep(dur)
 
     @commands.command()
     async def pause(self, ctx):
