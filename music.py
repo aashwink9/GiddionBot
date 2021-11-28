@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import youtube_dl
 import asyncio
+from functools import partial
 
 FFMPEG_OPTIONS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
@@ -32,11 +33,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.data = data
 
         self.title = data.get("title")
-        self.url = data.get("url")
+        self.url = data.get("webpage_url")
+        self.duration = data.get("duration")
 
     @classmethod
-    async def from_url(cls, url, *, loop=None, stream=False, play=False):
+    async def from_url(cls, url: str, *, loop, download=False):
         loop = loop or asyncio.get_event_loop()
+
         data = await loop.run_in_executor(
             None, lambda: ytdl.extract_info(url, download=False)
         )
@@ -44,92 +47,108 @@ class YTDLSource(discord.PCMVolumeTransformer):
         if "entries" in data:
             data = data["entries"][0]
 
-        filename = data["url"] if stream else ytdl.prepare_filename(data)
+        if download:
+            filename = ytdl.prepare_filename(data)
+        else:
+            return {'webpage_url': data['webpage_url'], 'title': data['title'], 'duration': data['duration']}
+
         return cls(discord.FFmpegPCMAudio(filename, **FFMPEG_OPTIONS), data=data)
+
+    @classmethod
+    async def regather_stream(cls, data, *, loop):
+        """Used for preparing a stream, instead of downloading.
+        Since Youtube Streaming links expire."""
+        loop = loop or asyncio.get_event_loop()
+
+        to_run = partial(ytdl.extract_info, url=data['webpage_url'], download=False)
+        data = await loop.run_in_executor(None, to_run)
+
+        return cls(discord.FFmpegPCMAudio(data['url']), data=data)
 
 
 class music(commands.Cog):
     def __init__(self, client):
         self.client = client
-        self.queue = []
+        self.queue = asyncio.Queue()
+        self.next = asyncio.Event()
+
+    def destroy(self, ctx):
+        """Disconnect and cleanup the player."""
+        return self.client.loop.create_task(ctx.cog.cleanup(ctx.guild))
 
     @commands.command()
-    async def play(self, ctx, url):
+    async def play(self, ctx, *, search: str):
         channel = ctx.message.author.voice.channel
         voice = discord.utils.get(self.client.voice_clients, guild=ctx.guild)
-        song = await YTDLSource.from_url(url, loop=self.client.loop, stream=True)
-        position = len(self.queue) + 1
+        getsong = await YTDLSource.from_url(search, loop=self.client.loop, download=False)
+        song = await YTDLSource.regather_stream(getsong, loop=self.client.loop)
+        position = self.queue.qsize() + 1
 
         if not ctx.message.author.voice:
             await ctx.send("You are not connected to a voice channel!")
             return
 
-        elif voice is not None:
+        elif voice:
             if not voice.is_playing():
-                try:
-                    self.queue.append(song)
+                await self.queue.put(song)
 
-                    while len(self.queue) > 0:
-                        ctx.voice_client.play(self.queue.pop(0),
-                                              after=lambda e: print("Player error:   %s" % e) if e else None, )
-
+                while self.queue.qsize() > 0:
+                    curr_song = await self.queue.get()
+                    dur = curr_song.duration
+                    ctx.voice_client.play(curr_song,
+                                          after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
                     await ctx.send(
                         f":mag_right: **Searching for** "
-                        "*" + url + "*"
+                        "*" + search + "*"
                         + "\n<:arrow_forward:763374159567781890> **Now Playing: ** ``{}".format(
                             song.title
                         )
                         + "``"
                     )
-
-                except:
-                    await ctx.send("Something went wrong - please try again later!")
+                    await asyncio.sleep(dur + 1)
 
             else:
-                try:
-                    self.queue.append(song)
-                    await ctx.send(
-                        f":mag_right: **Searching for** "
-                        + "*" + url + "*"
-                        + "\n<:play_pause:763374159567781890> **Queued Song: ** ``{}".format(
-                            song.title
-                        )
-                        + "``"
-                        + " **At Position ("
-                        + str(position)
-                        + ")**"
+                await self.queue.put(song)
+                await ctx.send(
+                    f":mag_right: **Searching for** "
+                    + "*" + search + "*"
+                    + "\n<:play_pause:763374159567781890> **Queued Song: ** ``{}".format(
+                        song.title
                     )
-
-                except:
-                    await ctx.send("Something went wrong - please try again later!")
+                    + "``"
+                    + " **At Position ("
+                    + str(position)
+                    + ")**"
+                )
 
         else:
             await channel.connect()
-            try:
-                self.queue.append(song)
-                ctx.voice_client.play(self.queue.pop(0),
-                                      after=lambda e: print("Player error:   %s" % e) if e else None, )
+            await self.queue.put(song)
 
+            while self.queue.qsize() > 0:
+                curr_song = await self.queue.get()
+                dur = curr_song.duration
+                ctx.voice_client.play(curr_song, after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
                 await ctx.send(
                     f":mag_right: **Searching for** "
-                    "*" + url + "*"
+                    "*" + search + "*"
                     + "\n<:arrow_forward:763374159567781890> **Now Playing: ** ``{}".format(
                         song.title
                     )
                     + "``"
                 )
-
-            except:
-                await ctx.send("Something went wrong - please try again later!")
+                await asyncio.sleep(dur + 1)
 
     @commands.command()
     async def pause(self, ctx):
-        await ctx.voice_client.pause()
+        voice_client = ctx.message.guild.voice_client
+        await voice_client.pause()
         await ctx.send(":pause_button: Paused!")
 
     @commands.command()
     async def resume(self, ctx):
-        await ctx.voice_client.resume()
+        voice_client = ctx.message.guild.voice_client
+        await voice_client.resume()
         await ctx.send(":arrow_forward: resumed!")
 
     @commands.command()
@@ -156,43 +175,43 @@ class music(commands.Cog):
     @commands.command()
     async def reset(self, ctx):
         voice_client = ctx.message.guild.voice_client
-        self.queue.clear()
+        while self.queue.empty() is not True:
+            await self.queue.get()
         await ctx.send(":gun: The queue has been reset! Exiting...")
         await voice_client.disconnect()
 
     @commands.command()
     async def clearq(self, ctx):
-        self.queue.clear()
+        while self.queue.empty() is not True:
+            await self.queue.get()
         await ctx.send(":gun: The queue has been cleared!")
 
     @commands.command()
     async def skip(self, ctx):
         voice_client = ctx.message.guild.voice_client
-        if len(self.queue) == 0:
+        if self.queue.qsize() == 0:
             await ctx.send(":stop_sign: *Stopping...\nLooks like you've at the end of the queue!*")
             voice_client.stop()
             return
         else:
             voice_client.stop()
-            nextsong = self.queue.pop(0)
+            nextsong = await self.queue.get()
+            ctx.voice_client.play(nextsong, after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
             await ctx.send(":fast_forward: *Skipping!*\n**Playing:** " + "``" + str(nextsong.title) + "``")
-
-            ctx.voice_client.play(nextsong)
             return
 
     @commands.command()
     async def next(self, ctx):
         voice_client = ctx.message.guild.voice_client
-        if len(self.queue) == 0:
+        if self.queue.qsize() == 0:
             await ctx.send(":stop_sign: *Stopping...\nLooks like you've at the end of the queue!*")
             voice_client.stop()
             return
         else:
             voice_client.stop()
-            nextsong = self.queue.pop(0)
+            nextsong = await self.queue.get()
+            ctx.voice_client.play(nextsong, after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
             await ctx.send(":fast_forward: *Skipping!*\n**Playing:** " + "``" + str(nextsong.title) + "``")
-
-            ctx.voice_client.play(nextsong)
             return
 
     @commands.command()
@@ -203,16 +222,11 @@ class music(commands.Cog):
 
     @commands.command()
     async def show(self, ctx):
-
-        if len(self.queue) == 0:
+        if self.queue.qsize() == 0:
             await ctx.send("The queue is empty!")
             return
 
-        qstr = ""
-        for q in self.queue:
-            qstr += "```" + str(self.queue.index(q) + 1) + ". " + str(q.title) + "```"
-
-        await ctx.send("**Songs in queue:**\n" + qstr)
+        await ctx.send("**Songs in queue:**\n")
 
 
 def setup(client):
