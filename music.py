@@ -3,7 +3,6 @@ from discord.ext import commands
 import youtube_dl
 import asyncio
 from functools import partial
-from async_timeout import timeout
 
 FFMPEG_OPTIONS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
