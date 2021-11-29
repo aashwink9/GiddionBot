@@ -91,42 +91,34 @@ class music(commands.Cog):
         elif voice:
             if not voice.is_playing():
                 await self.queue.put(song)
-                await ctx.send(":mag_right: **Searching for**" + "*" + search + "*")
+                await ctx.send(":mag_right: **Searching for your song...**")
 
                 while self.queue.qsize() > 0:
                     curr_song = await self.queue.get()
                     dur = curr_song.duration
                     ctx.voice_client.play(curr_song,
                                           after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
-                    await ctx.send(
-                        "<:arrow_forward:763374159567781890> **Now Playing: ** ``{}``".format(curr_song.title))
+                    await ctx.send(f":arrow_forward: **Now Playing:** ``{curr_song.title}``")
                     await asyncio.sleep(dur + 1)
 
             else:
                 await self.queue.put(song)
                 await ctx.send(
-                    f":mag_right: **Searching for** "
-                    + "*" + search + "*"
-                    + "\n<:play_pause:763374159567781890> **Queued Song: ** ``{}".format(
-                        song.title
-                    )
-                    + "``"
-                    + " **At Position ("
-                    + str(position)
-                    + ")**"
+                    ":mag_right: **Searching for your song...**"
+                    + f"\n:play_pause: **Queued Song: ** ``{song.title}`` **At Position ("
+                    + str(position) + ")**"
                 )
 
         else:
             await channel.connect()
             await self.queue.put(song)
-            await ctx.send(":mag_right: **Searching for**" + "*" + search + "*")
+            await ctx.send(":mag_right: **Searching for your song...**")
 
             while self.queue.qsize() > 0:
                 curr_song = await self.queue.get()
                 dur = curr_song.duration
                 ctx.voice_client.play(curr_song, after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
-                await ctx.send(
-                    "<:arrow_forward:763374159567781890> **Now Playing: ** ``{}``".format(curr_song.title))
+                await ctx.send(f":arrow_forward: **Now Playing:** ``{curr_song.title}``")
                 await asyncio.sleep(dur + 1)
 
     @commands.command()
