@@ -98,9 +98,9 @@ class music(commands.Cog):
                     while self.queue.qsize() > 0:
                         curr_song = await self.queue.get()
                         dur = curr_song.duration
+                        await ctx.send(f":arrow_forward: **Now Playing:** ``{curr_song.title}``")
                         ctx.voice_client.play(curr_song,
                                               after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
-                        await ctx.send(f":arrow_forward: **Now Playing:** ``{curr_song.title}``")
                         await asyncio.sleep(dur + 1)
 
                 else:
@@ -119,9 +119,9 @@ class music(commands.Cog):
                 while self.queue.qsize() > 0:
                     curr_song = await self.queue.get()
                     dur = curr_song.duration
+                    await ctx.send(f":arrow_forward: **Now Playing:** ``{curr_song.title}``")
                     ctx.voice_client.play(curr_song,
                                           after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
-                    await ctx.send(f":arrow_forward: **Now Playing:** ``{curr_song.title}``")
                     await asyncio.sleep(dur + 1)
 
         except TypeError:
