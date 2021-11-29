@@ -80,16 +80,39 @@ class music(commands.Cog):
     async def play(self, ctx, *, search: str):
         channel = ctx.message.author.voice.channel
         voice = discord.utils.get(self.client.voice_clients, guild=ctx.guild)
-        getsong = await YTDLSource.from_url(search, loop=self.client.loop, download=False)
-        song = await YTDLSource.regather_stream(getsong, loop=self.client.loop)
-        position = self.queue.qsize() + 1
 
-        if not ctx.message.author.voice:
-            await ctx.send("You are not connected to a voice channel!")
-            return
+        try:
+            getsong = await YTDLSource.from_url(search, loop=self.client.loop, download=False)
+            song = await YTDLSource.regather_stream(getsong, loop=self.client.loop)
+            position = self.queue.qsize() + 1
 
-        elif voice:
-            if not voice.is_playing():
+            if not ctx.message.author.voice:
+                await ctx.send("You are not connected to a voice channel!")
+                return
+
+            elif voice:
+                if not voice.is_playing():
+                    await self.queue.put(song)
+                    await ctx.send(":mag_right: **Searching for your song...**")
+
+                    while self.queue.qsize() > 0:
+                        curr_song = await self.queue.get()
+                        dur = curr_song.duration
+                        ctx.voice_client.play(curr_song,
+                                              after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
+                        await ctx.send(f":arrow_forward: **Now Playing:** ``{curr_song.title}``")
+                        await asyncio.sleep(dur + 1)
+
+                else:
+                    await self.queue.put(song)
+                    await ctx.send(
+                        ":mag_right: **Searching for your song...**"
+                        + f"\n:play_pause: **Queued Song: ** ``{song.title}`` **At Position ("
+                        + str(position) + ")**"
+                    )
+
+            else:
+                await channel.connect()
                 await self.queue.put(song)
                 await ctx.send(":mag_right: **Searching for your song...**")
 
@@ -101,25 +124,8 @@ class music(commands.Cog):
                     await ctx.send(f":arrow_forward: **Now Playing:** ``{curr_song.title}``")
                     await asyncio.sleep(dur + 1)
 
-            else:
-                await self.queue.put(song)
-                await ctx.send(
-                    ":mag_right: **Searching for your song...**"
-                    + f"\n:play_pause: **Queued Song: ** ``{song.title}`` **At Position ("
-                    + str(position) + ")**"
-                )
-
-        else:
-            await channel.connect()
-            await self.queue.put(song)
-            await ctx.send(":mag_right: **Searching for your song...**")
-
-            while self.queue.qsize() > 0:
-                curr_song = await self.queue.get()
-                dur = curr_song.duration
-                ctx.voice_client.play(curr_song, after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
-                await ctx.send(f":arrow_forward: **Now Playing:** ``{curr_song.title}``")
-                await asyncio.sleep(dur + 1)
+        except TypeError:
+            await ctx.send("Something went wrong, please try a different keyword!")
 
     @commands.command()
     async def pause(self, ctx):
