@@ -91,6 +91,7 @@ class music(commands.Cog):
         elif voice:
             if not voice.is_playing():
                 await self.queue.put(song)
+                await ctx.send(":mag_right: **Searching for**" + "*" + search + "*")
 
                 while self.queue.qsize() > 0:
                     curr_song = await self.queue.get()
@@ -98,13 +99,7 @@ class music(commands.Cog):
                     ctx.voice_client.play(curr_song,
                                           after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
                     await ctx.send(
-                        f":mag_right: **Searching for** "
-                        "*" + search + "*"
-                        + "\n<:arrow_forward:763374159567781890> **Now Playing: ** ``{}".format(
-                            song.title
-                        )
-                        + "``"
-                    )
+                        "<:arrow_forward:763374159567781890> **Now Playing: ** ``{}``".format(curr_song.title))
                     await asyncio.sleep(dur + 1)
 
             else:
@@ -124,19 +119,14 @@ class music(commands.Cog):
         else:
             await channel.connect()
             await self.queue.put(song)
+            await ctx.send(":mag_right: **Searching for**" + "*" + search + "*")
 
             while self.queue.qsize() > 0:
                 curr_song = await self.queue.get()
                 dur = curr_song.duration
                 ctx.voice_client.play(curr_song, after=lambda _: self.client.loop.call_soon_threadsafe(self.next.set))
                 await ctx.send(
-                    f":mag_right: **Searching for** "
-                    "*" + search + "*"
-                    + "\n<:arrow_forward:763374159567781890> **Now Playing: ** ``{}".format(
-                        song.title
-                    )
-                    + "``"
-                )
+                    "<:arrow_forward:763374159567781890> **Now Playing: ** ``{}``".format(curr_song.title))
                 await asyncio.sleep(dur + 1)
 
     @commands.command()
