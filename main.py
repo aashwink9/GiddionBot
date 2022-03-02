@@ -1,6 +1,7 @@
 import nextcord as discord
 from nextcord.ext import commands
 import music
+import os
 
 # -------------FOR HEROKU ENV------------------
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -8,7 +9,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 
 cogs = [music]
 
-bot = commands.Bot(command_prefix="-", intents=discord.Intents.all())
+bot = commands.Bot(command_prefix="#", intents=discord.Intents.all())
 
 for i in range(len(cogs)):
     cogs[i].setup(bot)
