@@ -1,7 +1,10 @@
-import json
 import nextcord as discord
 from nextcord.ext import commands
 import music
+
+# -------------FOR HEROKU ENV------------------
+TOKEN = os.getenv("DISCORD_TOKEN")
+# ---------------------------------------------
 
 cogs = [music]
 
@@ -14,11 +17,5 @@ for i in range(len(cogs)):
 @bot.event
 async def on_ready():
     print("logged in! as {0.user}".format(bot))
-
-# ----------Get token------------
-credsf = open("creds.json")
-creds = json.load(credsf)
-TOKEN = creds["token"]
-# -------------------------------
 
 bot.run(TOKEN)

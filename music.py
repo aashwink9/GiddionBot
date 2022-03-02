@@ -161,7 +161,6 @@ class MusicPlayer:
         """Disconnect and cleanup the player."""
         return self.bot.loop.create_task(self._cog.cleanup(guild))
 
-
 class music(commands.Cog):
     __slots__ = ('bot', 'players')
 
@@ -296,7 +295,6 @@ class music(commands.Cog):
             return
 
         vc.pause()
-
         await ctx.send(":pause_button: Paused!")
 
     @commands.command(name='resume', description="resumes music")
