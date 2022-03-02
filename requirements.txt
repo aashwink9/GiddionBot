@@ -5,3 +5,4 @@ PyNaCl
 dnspython
 youtube_dl
 asyncio
+async_timeout
