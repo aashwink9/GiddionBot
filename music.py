@@ -454,5 +454,16 @@ class music(commands.Cog):
         await self.cleanup(ctx.guild)
 
 
+class triggers(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.content.startswith('endar'):
+            evnt_mssg = message.content
+            await message.channel.send(f'{evnt_mssg}endar')
+
+
 def setup(bot):
     bot.add_cog(music(bot))
